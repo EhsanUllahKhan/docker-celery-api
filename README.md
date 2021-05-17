@@ -8,4 +8,7 @@ To execute the code use following command
 
 it will pull and start all the necessary containers. After that you have to checks the logs of containers to see if there are any errors if container exited or while doing api calls.
 
+# docker ps -a
+it'll show all the containers
+
 # docker logs -f $container_ID
