@@ -13,11 +13,6 @@ import socket
 
 from io import StringIO
 
-class badCommand(Exception):
-    def __init__(self):
-        self.status = 'Failure'
-        self.type = '127'
-        self.message = 'command not found'
 
 @celery.task(name='hello.task', bind=True)
 def hello_world(self, *name):
