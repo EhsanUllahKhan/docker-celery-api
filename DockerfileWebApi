@@ -1,0 +1,8 @@
+FROM tiangolo/uvicorn-gunicorn:python3.8
+
+LABEL maintainer="Ehsan"
+
+COPY requirements_webapi.txt /requirements.txt
+RUN pip install -r /requirements.txt
+
+COPY ./app /app
