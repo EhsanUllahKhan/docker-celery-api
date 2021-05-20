@@ -11,7 +11,7 @@ services:
     ports:
       - "5000:80"
     volumes:
-      - ./backend/web:/web
+      - ./backend/web:/backend/web
     depends_on:
       - redis_server
   worker:
@@ -22,7 +22,7 @@ services:
       REDISSERVER: redis://redis_server:6379
       C_FORCE_ROOT: "true"
     volumes:
-      - ./backend/celery:/celery_tasks
+      - ./backend/celery:/backend/celery_tasks
     depends_on:
       - redis_server
   redis_server:
