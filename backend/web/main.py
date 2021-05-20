@@ -1,18 +1,27 @@
 import json
 from pydantic import BaseModel
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from worker import celery
-
+from schemas import VMI
 app = FastAPI()
 
-class Item(BaseModel):
-    username: str
-    host: str
-    port: int
-    command: str
+# class Item(BaseModel):
+#     username: str
+#     host: str
+#     port: int
+#     command: str
 
 @app.post("/")
-async def create_item(item: Item):
+async def create_item(item: VMI
+  #                     = Body(...,
+  #           example={
+  #               "username": "Foo",
+  #               "host": "192.168.10.1",
+  #               "port": '22',docker
+  #               "command": 'pwd',
+  #           },
+  # )
+):
     task_name = "hello.task"
     task = celery.send_task(task_name, args=[item.host, item.port, item.username, item.command])
     return dict(id=task.id, url='localhost:5000/check_task/{}'.format(task.id))
