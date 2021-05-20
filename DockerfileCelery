@@ -3,7 +3,7 @@ FROM python:3.6
 COPY requirements_celery.txt /requirements.txt
 RUN pip install -r /requirements.txt
 
-COPY ./celery /celery_tasks
+COPY ./backend/celery /celery_tasks
 WORKDIR /celery_tasks
 
-ENTRYPOINT celery -A tasks worker --loglevel=info
+ENTRYPOINT celery -A backend.celery.tasks worker --loglevel=info

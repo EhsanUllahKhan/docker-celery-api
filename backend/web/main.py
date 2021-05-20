@@ -3,9 +3,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 from worker import celery
 
-
 app = FastAPI()
-
 
 class Item(BaseModel):
     username: str
@@ -13,13 +11,11 @@ class Item(BaseModel):
     port: int
     command: str
 
-
 @app.post("/")
 async def create_item(item: Item):
     task_name = "hello.task"
     task = celery.send_task(task_name, args=[item.host, item.port, item.username, item.command])
     return dict(id=task.id, url='localhost:5000/check_task/{}'.format(task.id))
-
 
 @app.get("/check_task/{id}")
 def check_task(id: str):
