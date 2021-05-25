@@ -6,12 +6,10 @@ class VMI(BaseModel):
     port: int
     command: str
 
+class Command_schema(BaseModel):
+    c_id: int
+    command: str
+    result: str
+
     class Config:
-        schema_extra = {
-            "example": {
-                "username": "Foo",
-                "host": "192.168.10.1",
-                "port": '22',
-                "command": 'pwd',
-            }
-        }
+        orm_mode = True

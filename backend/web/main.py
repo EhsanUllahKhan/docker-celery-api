@@ -1,8 +1,8 @@
 import json
 from pydantic import BaseModel
 from fastapi import FastAPI, Body
-from worker import celery
-from schemas import VMI
+from .worker import celery
+from .schemas import VMI
 app = FastAPI()
 
 # class Item(BaseModel):

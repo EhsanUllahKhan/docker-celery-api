@@ -6,4 +6,4 @@ RUN pip install -r /requirements.txt
 COPY ./backend/celery /celery_tasks
 WORKDIR /celery_tasks
 
-ENTRYPOINT celery -A backend.celery.tasks worker --loglevel=info
+ENTRYPOINT celery -A tasks worker --loglevel=info

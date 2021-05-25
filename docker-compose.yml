@@ -1,19 +1,26 @@
 version: "3.7"
 
 services:
-  fastapi:
-    build:
-      context: .
-      dockerfile: DockerfileWebApi
-    environment:
-      REDISSERVER: redis://redis_server:6379
-      C_FORCE_ROOT: "true"
+  db:
+    image: mysql/mysql-server:8.0.19
+    command: "--default-authentication-plugin=mysql_native_password"
     ports:
-      - "5000:80"
+      - "3306:3306"
+    environment:
+      - MYSQL_USER=ehsan
+      - MYSQL_PASSWORD=ehsan
+      - MYSQL_DATABASE=vmi_db
     volumes:
-      - ./backend/web:/backend/web
-    depends_on:
-      - redis_server
+      - db_data:/var/lib/mysql
+
+#  migrations:
+#    build:
+#      context: .
+#      dockerfile: Dockerfiledb
+#    command: bash -c "alembic upgrade head"
+#    depends_on:
+#      - db
+
   worker:
     build:
       dockerfile: DockerfileCelery
@@ -22,11 +29,33 @@ services:
       REDISSERVER: redis://redis_server:6379
       C_FORCE_ROOT: "true"
     volumes:
-      - ./backend/celery:/backend/celery_tasks
+      - ./backend/celery:/celery_tasks
     depends_on:
       - redis_server
+
   redis_server:
     image: redis
+#alembic upgrade head &&
+  fastapi:
+    build:
+      context: .
+      dockerfile: DockerfileWebApi
+#    entrypoint: entrypoint.sh
+    environment:
+      REDISSERVER: redis://redis_server:6379
+      C_FORCE_ROOT: "true"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./:/backend/
+    depends_on:
+      - redis_server
+      - db
+    entrypoint: bash -c "sh ./backend/entrypoint.sh"
+
+
+volumes:
+  db_data:
 
   # flower:
   #   image: mher/flower
@@ -35,3 +64,14 @@ services:
   #     - "5555:5555"
   #   depends_on:
   #     - redis_server
+
+#
+#FROM python:3.6
+#
+#COPY requirements_webapi.txt /requirements.txt
+#RUN pip install -r /requirements.txt
+#
+#COPY . /migrations
+#WORKDIR /migrations
+#
+#ENTRYPOINT alembic revision --autogenerate -m "Added command table"
