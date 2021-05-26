@@ -9,33 +9,22 @@ import paramiko
 import socket
 
 from io import StringIO
-from sqlalchemy.orm import Session, sessionmaker
 from ..models.models import Command
-from ..database import SessionLocal, Base
+from ..database import SessionLocal
 
-# class badCommand(Exception):
-#     def __init__(self):
-#         self.status = 'Failure'
-#         self.type = '127'
-#         self.message = 'command not found'
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
 
 def save_to_db(cmd, rslt):
-    # Session = sessionmaker(bind=engine)
     session = SessionLocal()
     command = Command(command=cmd, result=rslt)
     session.add(command)
     session.commit()
     session.close()
-    #
-    # Base.session.add(command)
-    # Base.session.commit()
 
 @celery.task(name='hello.task', bind=True)
 def hello_world(self, *name):
@@ -96,6 +85,7 @@ aaWIjVRRjE3lsAAAAUZWhzYW5AZWhzYW4td2FuY2xvdWQBAgMEBQYH
             paramiko.ssh_exception.SSHException,
             socket.timeout
             ) as ex:
+        save_to_db(name[3],type(ex).__name__)
         print(f'\nexception_______________{ex}')
         self.update_state(
             state=states.FAILURE,
@@ -186,16 +176,13 @@ aaWIjVRRjE3lsAAAAUZWhzYW5AZWhzYW4td2FuY2xvdWQBAgMEBQYH
         # print("(******************* error is **************")
 
         if(stdout.channel.recv_exit_status() == 0):
-            # command = Command(command=name[3], result=opt)
             save_to_db(name[3], opt)
-
             return {"result": "Response from VMI is\n {}".format(str(opt))}
         else:
-            # command = Command(command=name[3], result='Invalid Command')
-            save_to_db(name[3], 'Invalid Command')
             raise Exception('Command not found')
 
     except Exception as ex:
+        save_to_db(name[3], 'Invalid Command')
         self.update_state(
             state=states.FAILURE,
             meta={
