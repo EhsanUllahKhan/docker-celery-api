@@ -9,8 +9,9 @@ import paramiko
 import socket
 
 from io import StringIO
-from sqlalchemy.orm import Session
-from ..database import SessionLocal
+from sqlalchemy.orm import Session, sessionmaker
+from ..models.models import Command
+from ..database import SessionLocal, Base
 
 # class badCommand(Exception):
 #     def __init__(self):
@@ -24,6 +25,17 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def save_to_db(cmd, rslt):
+    # Session = sessionmaker(bind=engine)
+    session = SessionLocal()
+    command = Command(command=cmd, result=rslt)
+    session.add(command)
+    session.commit()
+    session.close()
+    #
+    # Base.session.add(command)
+    # Base.session.commit()
 
 @celery.task(name='hello.task', bind=True)
 def hello_world(self, *name):
@@ -172,9 +184,15 @@ aaWIjVRRjE3lsAAAAUZWhzYW5AZWhzYW4td2FuY2xvdWQBAgMEBQYH
         # print("before")
         # print(stdout.channel.recv_exit_status())
         # print("(******************* error is **************")
+
         if(stdout.channel.recv_exit_status() == 0):
+            # command = Command(command=name[3], result=opt)
+            save_to_db(name[3], opt)
+
             return {"result": "Response from VMI is\n {}".format(str(opt))}
         else:
+            # command = Command(command=name[3], result='Invalid Command')
+            save_to_db(name[3], 'Invalid Command')
             raise Exception('Command not found')
 
     except Exception as ex:
