@@ -1,27 +1,21 @@
 import json
 from pydantic import BaseModel
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, Depends
+from sqlalchemy.orm import Session
 from .worker import celery
 from .schemas import VMI
 app = FastAPI()
-
-# class Item(BaseModel):
-#     username: str
-#     host: str
-#     port: int
-#     command: str
+#
+from ..database import SessionLocal
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.post("/")
-async def create_item(item: VMI
-  #                     = Body(...,
-  #           example={
-  #               "username": "Foo",
-  #               "host": "192.168.10.1",
-  #               "port": '22',docker
-  #               "command": 'pwd',
-  #           },
-  # )
-):
+async def create_item(item: VMI):
     task_name = "hello.task"
     task = celery.send_task(task_name, args=[item.host, item.port, item.username, item.command])
     return dict(id=task.id, url='localhost:5000/check_task/{}'.format(task.id))

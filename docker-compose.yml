@@ -29,7 +29,7 @@ services:
       REDISSERVER: redis://redis_server:6379
       C_FORCE_ROOT: "true"
     volumes:
-      - ./backend/celery:/celery_tasks
+      - ./:/celery_tasks
     depends_on:
       - redis_server
 
