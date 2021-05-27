@@ -30,9 +30,15 @@ def check_task(id: str):
             'task_id': id
         }
     elif task.state == 'FAILURE':
-        response = json.loads(task.backend.get(task.backend.get_key_for_task(task.id)).decode('utf-8'))
-        del response['children']
-        del response['traceback']
+        print(f'*********** \n\t {task.backend.get(task.backend.get_key_for_task(task.id))} \t*********** \n')
+        response = {
+            'status': task.state,
+            'result': 'Error',
+            'task_id': id
+        }
+        # response = json.loads(task.backend.get(task.backend.get_key_for_task(task.id)).decode('utf-8'))
+        # del response['children']
+        # del response['traceback']
     else:
         response = {
             'status': task.state,

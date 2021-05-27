@@ -12,12 +12,7 @@ from io import StringIO
 from ..models.models import Command
 from ..database import SessionLocal
 
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
+from .SSHManager import SSHManager
 
 def save_to_db(cmd, rslt):
     session = SessionLocal()
@@ -30,8 +25,8 @@ def save_to_db(cmd, rslt):
 def hello_world(self, *name):
     print(f'{name[0]} \t port={name[1]}, \tusername={name[2]} , \t{name[3]} \t {name}>>>>>>>>>>\n')
 
-    p = paramiko.SSHClient()
-    p.set_missing_host_key_policy(paramiko.AutoAddPolicy())  
+    # p = paramiko.SSHClient()
+    # p.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     private_key = StringIO('''-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
@@ -71,31 +66,39 @@ cqAUiQ+JijuTYvTpWboIzH/qn/AcCIA5VUuY1dfHfyXFpN3qTOVfCIgEw7sy4FexyG4gyu
 JuARRkgUUYaOqvLzHI4u/IzlwntI6am8uSE6F/JhKizyrC8iAixjxT9xdn0C52t/fL+VvN
 aaWIjVRRjE3lsAAAAUZWhzYW5AZWhzYW4td2FuY2xvdWQBAgMEBQYH
 -----END OPENSSH PRIVATE KEY-----''')
-    pk = paramiko.RSAKey.from_private_key(private_key)
-
+    ssh_manager = None
     try:
-        p.connect(hostname=name[0], port=name[1], username=name[2], pkey = pk)
-
-    except (IOError,
-            socket.error,
-            paramiko.ssh_exception.PasswordRequiredException,
-            paramiko.ssh_exception.AuthenticationException,
-            paramiko.ssh_exception.NoValidConnectionsError,
-            paramiko.ssh_exception.BadHostKeyException,
-            paramiko.ssh_exception.SSHException,
-            socket.timeout
-            ) as ex:
-        save_to_db(name[3],type(ex).__name__)
-        print(f'\nexception_______________{ex}')
+        ssh_manager = SSHManager(hostname=name[0], port=name[1], username=name[2], private_key = private_key)
+        output = ssh_manager.run_command(name[3])
+        save_to_db(name[3], output)
+        return {"result": "Response from VMI is\n {}".format(str(output))}
+    except Exception as ex:
+        save_to_db(name[3], type(ex).__name__)
         self.update_state(
-            state=states.FAILURE,
-            meta={
-                'exc_type': type(ex).__name__,
-                'exc_message': traceback.format_exc().split('\n')
-            })
+                state=states.FAILURE,
+                meta={
+                    'exc_type': type(ex).__name__,
+                    'exc_message': traceback.format_exc().split('\n')
+                })
         raise ex
-    #
-    # except socket.error as ex:
+    finally:
+        if ssh_manager:
+            ssh_manager.close_ssh_connection()
+
+    # pk = paramiko.RSAKey.from_private_key(private_key)
+
+    # try:
+    #     p.connect(hostname=name[0], port=name[1], username=name[2], pkey = pk)
+    # except (IOError,
+    #         socket.error,
+    #         paramiko.ssh_exception.PasswordRequiredException,
+    #         paramiko.ssh_exception.AuthenticationException,
+    #         paramiko.ssh_exception.NoValidConnectionsError,
+    #         paramiko.ssh_exception.BadHostKeyException,
+    #         paramiko.ssh_exception.SSHException,
+    #         socket.timeout
+    #         ) as ex:
+    #     save_to_db(name[3],type(ex).__name__)
     #     print(f'\nexception_______________{ex}')
     #     self.update_state(
     #         state=states.FAILURE,
@@ -104,90 +107,29 @@ aaWIjVRRjE3lsAAAAUZWhzYW5AZWhzYW4td2FuY2xvdWQBAgMEBQYH
     #             'exc_message': traceback.format_exc().split('\n')
     #         })
     #     raise ex
+    # try:
+    #     stdin, stdout, stderr = p.exec_command(name[3])
+    #     sleep(5)
     #
-    # except paramiko.ssh_exception.PasswordRequiredException as ex:
-    #     print(f'\nexception________-1_______{ex}')
+    #     opt = stdout.readlines()
+    #     opt = "".join(opt)
+    #     # print("before")
+    #     # print(stdout.channel.recv_exit_status())
+    #     # print("(******************* error is **************")
+    #
+    #     if(stdout.channel.recv_exit_status() == 0):
+    #         save_to_db(name[3], opt)
+    #         return {"result": "Response from VMI is\n {}".format(str(opt))}
+    #     else:
+    #         raise Exception('Command not found')
+    #
+    # except Exception as ex:
+    #     save_to_db(name[3], 'Invalid Command')
     #     self.update_state(
     #         state=states.FAILURE,
     #         meta={
     #             'exc_type': type(ex).__name__,
-    #             'exc_message': traceback.format_exc().split('\n')
+    #             'exc_message': "command not found"
     #         })
     #     raise ex
-
-    # except paramiko.ssh_exception.AuthenticationException as ex:
-    #     print(f'\nexception________0_______{ex}')
-    #     self.update_state(
-    #         state=states.FAILURE,
-    #         meta={
-    #             'exc_type': type(ex).__name__,
-    #             'exc_message': traceback.format_exc().split('\n')
-    #         })
-    #     raise ex
-
-    # except paramiko.ssh_exception.NoValidConnectionsError as ex:
-    #     print(f'\nexception________1_______{ex}')
-    #     self.update_state(
-    #         state=states.FAILURE,
-    #         meta={
-    #             'exc_type': type(ex).__name__,
-    #             'exc_message': traceback.format_exc().split('\n')
-    #         })
-    #     raise ex
-
-    # except paramiko.ssh_exception.BadHostKeyException as ex:
-    #     print(f'\nexception________3_______{ex}')
-    #     self.update_state(
-    #         state=states.FAILURE,
-    #         meta={
-    #             'exc_type': type(ex).__name__,
-    #             'exc_message': traceback.format_exc().split('\n')
-    #         })
-    #     raise ex
-
-    # except paramiko.ssh_exception.SSHException as ex:
-    #     print(f'\nexception________4_______{ex}')
-    #     self.update_state(
-    #         state=states.FAILURE,
-    #         meta={
-    #             'exc_type': type(ex).__name__,
-    #             'exc_message': traceback.format_exc().split('\n')
-    #         })
-    #     raise ex
-
-    # except socket.timeout as ex:
-    #     print(f'\ntimeout exception________5_______{ex}')
-    #     self.update_state(
-    #         state=states.FAILURE,
-    #         meta={
-    #             'exc_type': type(ex).__name__,
-    #             'exc_message': traceback.format_exc().split('\n')
-    #         })
-    #     raise ex
-
-    try:
-        stdin, stdout, stderr = p.exec_command(name[3])
-        sleep(5)
-
-        opt = stdout.readlines()
-        opt = "".join(opt)
-        # print("before")
-        # print(stdout.channel.recv_exit_status())
-        # print("(******************* error is **************")
-
-        if(stdout.channel.recv_exit_status() == 0):
-            save_to_db(name[3], opt)
-            return {"result": "Response from VMI is\n {}".format(str(opt))}
-        else:
-            raise Exception('Command not found')
-
-    except Exception as ex:
-        save_to_db(name[3], 'Invalid Command')
-        self.update_state(
-            state=states.FAILURE,
-            meta={
-                'exc_type': type(ex).__name__,
-                'exc_message': "command not found"
-            })
-        raise ex
 
