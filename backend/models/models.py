@@ -13,5 +13,5 @@ class Command(Base):
     command = Column(String)
     task_id=Column(String)
     result = Column(String, nullable=True)
+    task_state=Column(String)
     exception = Column(String, nullable=True)
-
