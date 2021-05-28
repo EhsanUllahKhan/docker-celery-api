@@ -1,12 +1,4 @@
-from time import sleep
-import traceback
-
-from celery import states
-
 from .worker import celery
-
-import paramiko
-import socket
 
 from io import StringIO
 from ..models.models import Command
@@ -14,19 +6,20 @@ from ..database import SessionLocal
 
 from .SSHManager import SSHManager
 
-def save_to_db(cmd, rslt):
-    session = SessionLocal()
-    command = Command(command=cmd, result=rslt)
-    session.add(command)
-    session.commit()
-    session.close()
+def save_to_db(task_id, rslt=None, status=None, excptn=None):
+    db = SessionLocal()
+    _u = db.query(Command).filter(Command.task_id == task_id).one_or_none()
+    _u.result = rslt
+    _u.task_state = status
+    _u.exception = excptn
+    db.add(_u)
+    db.commit()
+    db.refresh(_u)
 
 @celery.task(name='hello.task', bind=True)
 def hello_world(self, *name):
+    print(f'\n\t>>>>>>>>>>>> task id \t{self.request.id.__str__()}<<<<<<<<<<<<<\n')
     print(f'{name[0]} \t port={name[1]}, \tusername={name[2]} , \t{name[3]} \t {name}>>>>>>>>>>\n')
-
-    # p = paramiko.SSHClient()
-    # p.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     private_key = StringIO('''-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
@@ -70,66 +63,16 @@ aaWIjVRRjE3lsAAAAUZWhzYW5AZWhzYW4td2FuY2xvdWQBAgMEBQYH
     try:
         ssh_manager = SSHManager(hostname=name[0], port=name[1], username=name[2], private_key = private_key)
         output = ssh_manager.run_command(name[3])
-        save_to_db(name[3], output)
-        return {"result": "Response from VMI is\n {}".format(str(output))}
+        save_to_db(self.request.id.__str__(), rslt=output, status='SUCCESS')
     except Exception as ex:
-        save_to_db(name[3], type(ex).__name__)
-        self.update_state(
-                state=states.FAILURE,
-                meta={
-                    'exc_type': type(ex).__name__,
-                    'exc_message': traceback.format_exc().split('\n')
-                })
-        raise ex
+        save_to_db(self.request.id.__str__(), excptn=type(ex).__name__, status='FAILURE')
+        # self.update_state(
+        #         state=states.FAILURE,
+        #         meta={
+        #             'exc_type': type(ex).__name__,
+        #             'exc_message': traceback.format_exc().split('\n')
+        #         })
+        # raise ex
     finally:
         if ssh_manager:
             ssh_manager.close_ssh_connection()
-
-    # pk = paramiko.RSAKey.from_private_key(private_key)
-
-    # try:
-    #     p.connect(hostname=name[0], port=name[1], username=name[2], pkey = pk)
-    # except (IOError,
-    #         socket.error,
-    #         paramiko.ssh_exception.PasswordRequiredException,
-    #         paramiko.ssh_exception.AuthenticationException,
-    #         paramiko.ssh_exception.NoValidConnectionsError,
-    #         paramiko.ssh_exception.BadHostKeyException,
-    #         paramiko.ssh_exception.SSHException,
-    #         socket.timeout
-    #         ) as ex:
-    #     save_to_db(name[3],type(ex).__name__)
-    #     print(f'\nexception_______________{ex}')
-    #     self.update_state(
-    #         state=states.FAILURE,
-    #         meta={
-    #             'exc_type': type(ex).__name__,
-    #             'exc_message': traceback.format_exc().split('\n')
-    #         })
-    #     raise ex
-    # try:
-    #     stdin, stdout, stderr = p.exec_command(name[3])
-    #     sleep(5)
-    #
-    #     opt = stdout.readlines()
-    #     opt = "".join(opt)
-    #     # print("before")
-    #     # print(stdout.channel.recv_exit_status())
-    #     # print("(******************* error is **************")
-    #
-    #     if(stdout.channel.recv_exit_status() == 0):
-    #         save_to_db(name[3], opt)
-    #         return {"result": "Response from VMI is\n {}".format(str(opt))}
-    #     else:
-    #         raise Exception('Command not found')
-    #
-    # except Exception as ex:
-    #     save_to_db(name[3], 'Invalid Command')
-    #     self.update_state(
-    #         state=states.FAILURE,
-    #         meta={
-    #             'exc_type': type(ex).__name__,
-    #             'exc_message': "command not found"
-    #         })
-    #     raise ex
-

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+#echo "*************** creating database ****************"
+#alembic create schema vmi_db if not exists
 
 echo "_______________running autogenerate_______________"
 alembic revision --autogenerate -m "Added command table"
